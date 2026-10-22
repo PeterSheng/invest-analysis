@@ -221,3 +221,11 @@ https://qt.gtimg.cn/q=usDVA        # 美股用 us 前缀（港股用 hk 前缀�
 - **时区**：北京时间晚上 = 美东凌晨（未开盘），API 只返回**上一交易日收盘价**——报告必须标注"截至美东 X月X日收盘"，不得写成"分析当天价格"（DVA教训：分析日8/6但最新数据是美东8/5收盘，属正常，但要标注清楚）。
 - **单日暴跌 >10% 必查事件**：DVA 8/5 -17.24%，查证后是 Q2 财报（8/4盘后，营收/EPS 均 beat）但 2026 指引中点 $14.65 < 共识 $14.88 + 商业保险报销压力 + CMS 2027 ESRD 提案（磷结合剂纳入捆绑支付）——"财报beat但股价暴跌"= 市场对前瞻指引/监管的担忧，比财报本身更重要。搜索关键词组合：`"TICKER" stock drop|plunge + 日期`、`"TICKER" guidance + 年份`、`"TICKER" CMS|regulatory + 年份`。
 - 美股财务全序列：akshare `stock_financial_hk_analysis_indicator_em` 只覆盖港股；美股用 web_search 找季报新闻 + `stock_us_*` 接口（Eastmoney spot_em 偶发断连，失败走腾讯API兜底）。
+
+## 6. 官方业绩新闻稿的镜像域收集法 + 旧报告序列审计（2026-10 创科实业 0669 实战）
+
+**美通社官方稿全文镜像在 SEO 农场域名上，可直接抓**：TTI 的 H1'26/FY25 官方新闻稿（含财务摘要表、净现金、分部数据）在 prnasia.com 本站有（story/542881-1.shtml），但雪球全文版有 WAF、搜索索引页常 404。破解姿势：用**精确标题短语**搜（如 `"创科实业" "二零二五年" 业绩`、`创科实业 2025年 销售额 153亿美元`——把冲突数字直接放进 query，官方稿摘录会出现在 description 里），然后抓镜像域名：`hotelmomcbeijing.cn/newsdetail-*.html`、`fourpoints-*.sheratons.cn`、`ramadaplaza*.wyndhamhotel.cn` 等酒店农场站——内容与美通社原文**逐字一致**（含表格），plain urllib + Accept-Encoding: identity 可直抓，无需浏览器。财华 finet.com.cn、网易 dy/article 也是高质量镜像。
+
+**同业行情快照同场拉齐**：`qt.gtimg.cn/q=usSWK,usSNA,jp6586,hk02285` 可一次拉美股/日股/港股同行（SWK PE[39]、SNA PE 18.8、Makita 收盘价、泉峰 PE[44]），同业对比表一个代码块搞定。
+
+**旧报告历史序列必须做官方源审计（创科实业教训）**：202606 旧报告 FY17-25"亿 HKD"绝对值序列实为美元数错挂 HKD 单位（FY25 营收写 1,072.6 亿 HKD，官方 US$15.3B ≈ 1,201 亿 HKD，低估 11%）。**重析/首轮前，把旧报告的营收/净利绝对值逐年对拍官方业绩新闻稿**——旧报告的增速百分比与官方一致（可用），绝对值不可用。数据包内必须写"旧报告禁用条款"（哪些列禁、哪些可作定性对照），否则子代理会把错误数字带进四份报告。

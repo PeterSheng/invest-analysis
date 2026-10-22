@@ -164,6 +164,34 @@ https://s202.q4cdn.com/{tenant_id}/files/doc_financials/{YYYY}/q{N}/{TICKER}-USQ
 - **AFFO 序列重建配方（REIT 专用）**：stockanalysis 四页无 AFFO → 用 Zacks/TradingView 财报快照拼：季值+增速反推上年同季（Q2'26 $11.78 +19% → Q2'25 $9.90），FY 值找 Q4 报道（"FY25 $38.33 +9.5%"），两条路径互验（FY26 指引中值隐含增速 vs 季度加总），对不上的年份标"估"
 - **REIT 净杠杆双口径**：公司口径用**年化/run-rate** 调整后 EBITDA（EQIX 3.6x @Q3'25），自算 TTM 口径会给 ~4.0x——capex 高速爬坡期两口径差 0.4-0.5x，报告双列并注明基期
 
+## 2.12 SEC 官方兜底：XBRL 年度序列 + 8-K EX-99.1 新闻稿（UNH 2026-10 实战）
+
+**① stockanalysis 会中途 403，别死磕**：同一会话前半段 200、后半段 403（UA 伪装失效）。兜底走 SEC 官方 XBRL，且 FY 年度序列比聚合站更权威——UNH 实战借此纠正旧报告两处硬伤（FY25 净利实为 $12.06B 而非旧报告 ~$13.3B、OCF $19.7B 而非 ~$28B）：
+
+```python
+# CIK 九位补零（UNH=0000731766）；UA 必填（sec.gov 规则，带联系方式）
+tags = ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax",
+        "NetIncomeLoss", "NetCashProvidedByUsedInOperatingActivities", "EarningsPerShareDiluted"]
+for tag in tags:
+    u = f"https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/us-gaap/{tag}.json"
+    d = json.loads(urllib.request.urlopen(urllib.request.Request(
+        u, headers={"User-Agent": "research contact@example.com"}), timeout=25).read())
+    for e in d["units"]["USD"]:
+        if e.get("form") == "10-K" and e.get("fp") == "FY" and (e.get("frame") or "").startswith("CY"):
+            ...  # 每个日历年一条；NetIncomeLoss = 归母口径
+```
+- tag 404 静默跳过（§2.6 同款）；同 period 重复出现（10-K 次年带可比期）按 `end` 取最新
+- **季度概念多数无 frame**（如 StockholdersEquity 季度值）→ 改按 `end` 日期过滤，勿依赖 frame
+- **倍数计算的 $M/$B 混用陷阱（§2 单位陷阱的倍数版）**：报表值 $M、模型假设 $B 混用时倍数虚高 1000 倍（UNH：P/B 36.0x / EV/EBIT 148.6x → 统一 $M 后 3.60x / 16.5x）。倍数合理性自检：成熟公司 PB 1-5x、EV/EBIT 8-25x、FCF yield 3-10%
+
+**② 8-K EX-99.1 新闻稿 = 指引演化/分部/会员表的一手来源**（替代"web_search 拼新闻"）：
+```
+data.sec.gov/submissions/CIK{cik}.json    # recent[] 取 form=='8-K' 且 date≈财报日
+→ https://www.sec.gov/Archives/edgar/data/{cik}/{acc去横线}/index.json
+→ 找 earningsrelease*.htm（EX-99.1）→ 去 HTML 标签 → 正则抓 outlook/指引表
+```
+UNH 实战：Q3'26 8-K（2026-10-13）一次拿全——单季营收 $112.7B / 调整后 EPS $4.69 / MCR 88.4% / 分部 EFO / 会员数 / 债务资本比 / **指引演化表（prior vs current 两列对照）**。硬规则：**"指引上调/下调"类断言必须引用新闻稿演化表，禁止新闻转述**。
+
 ## 3. 兜底路径
 
 - 指引/事件/分部细节：web_search（如 `"Netflix" guidance revenue operating margin 2026`、`"NFLX" stock drop reason 日期`）
