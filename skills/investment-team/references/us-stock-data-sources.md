@@ -68,7 +68,7 @@ def parse_tables(html_text):
 
 | 陷阱 | 处理 |
 |------|------|
-| **自定义 DCF 模型的 $M/$B 单位因子** | `dupont_analysis.py` 模板里 `iv = eq × 1000 / shares` 只适用于 **$B 单位**输入（$B→$M 转换）。**直接从 stockanalysis 拿 $M 数据建自定义模型时，equity 也是 $M，`iv = eq / shares_m`（百万/百万 = 美元/股），多乘 1000 会让 IV 虚高 1000 倍**（POOL 实战：$159,269 vs 正确 $159）。同理 OCF/股 = `ocf_m / shares_m`，不是 ×1000。跑完先做合理性检查：IV 应与股价同量级 |
+| **自定义 DCF 模型的 $M/$B 单位因子** | `dupont_analysis.py` 模板里 `iv = eq × 1000 / shares` 只适用于 **$B 单位**输入（$B→$M 转换）。**直接从 stockanalysis 拿 $M 数据建自定义模型时，equity 也是 $M，`iv = eq / shares_m`（百万/百万 = 美元/股），多乘 1000 会让 IV 虚高 1000 倍**（POOL 实战：$159,269 vs 正确 $159；**镁光 2026-10 三犯**——周期股 DCF 的 FCF 起点常以 $B 口径取得、股本为 $M，混用即错 1000 倍，IV 自检不可跳过）。同理 OCF/股 = `ocf_m / shares_m`，不是 ×1000。跑完先做合理性检查：IV 应与股价同量级 |
 | **ROE 均值回归公式的单位一致性** | `pb_norm = roe_norm / roe_now × pb_now` 中两数必须**同口径**（都用百分数，如 25/31.25）。混用小数（0.25）和百分数（31.25）会让 PB 收缩到 0.04x 的荒谬值（POOL 实战：算出股价 $2，修正后 $150 才合理） |
 | **拆股口径** | NFLX 2025-10 做过 1:10 拆股，所有历史 EPS/价格须确认是否拆股后口径。快速判断：52 周高低价与现价是否同量级（拆股前 $900+ → 拆股后 $90） |
 | **一次性收益污染** | Netflix 2026 WBD 竞购战退出后获 Paramount $28 亿分手费，或计入 2026 净利 → TTM 净利 $13.65B 可能含 $2.8B 水分 → 表面 PE 24.6x vs 核心 PE ~30x。**必须做"剔除一次性收益"敏感性**，用核心口径做估值锚 |
@@ -191,6 +191,21 @@ data.sec.gov/submissions/CIK{cik}.json    # recent[] 取 form=='8-K' 且 date≈
 → 找 earningsrelease*.htm（EX-99.1）→ 去 HTML 标签 → 正则抓 outlook/指引表
 ```
 UNH 实战：Q3'26 8-K（2026-10-13）一次拿全——单季营收 $112.7B / 调整后 EPS $4.69 / MCR 88.4% / 分部 EFO / 会员数 / 债务资本比 / **指引演化表（prior vs current 两列对照）**。硬规则：**"指引上调/下调"类断言必须引用新闻稿演化表，禁止新闻转述**。
+
+## 2.13 全年价格史 API：/api/symbol/s/ 路径（镁光 MU 2026-10 实战）
+
+§2.11 曾记录"stockanalysis JSON API 403"（EQIX，当时用的端点路径不同）——镁光实测**换对路径即可用**，这是美股价格史的可靠主源：
+
+```python
+u = f"https://stockanalysis.com/api/symbol/s/{ticker}/history?range=1Y&period=daily"
+# 返回 252 行全量日线（date/open/close/volume），range 可换 5Y/10Y/max
+```
+
+- **HTML history 页只渲染最近 ~50 行**，正则抓表格会漏——完整周期史必须走 API
+- stooq 返回 JS 挑战页、Yahoo 403（与 EQIX 经验一致）；该 API 覆盖缺口
+- 用途：历史周期顶同构解剖学（取上轮顶点价）、52 周高低点、回撤幅度计算
+
+**⚠️ `financials/?p=10Y` 只返回 5 个财年**（MU 实测 FY2022-2026，参数名义 10Y 实际 5 列）。跨 ≥1 完整周期的归一化/同构分析需要更早财年时：SEC XBRL 年度序列（§2.12①）兜底 + 公司 10-K 转录，数据包声明来源与口径。
 
 ## 3. 兜底路径
 
