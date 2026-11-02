@@ -81,6 +81,7 @@ for label, key in metrics.items():
 | Zoetis | ZTS | 0001555280 |
 | Intuit | INTU | 0000896878 |
 | Waste Management | WM | 0000823768 |
+| Mastercard | MA | 0001141391 |
 
 | 查询新公司CIK：`https://www.sec.gov/cgi-bin/browse-edgar?CIK={TICKER}`
 
@@ -151,3 +152,19 @@ def get_10k(concept):
 ### 6.4 搜索结果里的 SEC 链接可能不是目标公司
 
 搜索 "Waste Management 2024 annual" 返回 `exhibit99tofebruary52025.htm`（CIK 37996）声称"2024 营收 $18.5B 净利 $5.9B"——**那不是 WM**（WM CIK 是 0000823768）。用任何 SEC 链接数据前先验证 CIK 与公司名匹配，再与 companyfacts 对拍。
+
+## 7. ⚠️ 收入概念的 GROSS/NET 陷阱与 EPS 行伪影（MA 2026-11 重析轮实战）
+
+用 `companyconcept` 兜底拉 5 年以前历史（stockanalysis `?p=10Y` 只有 5 列，见 us-stock-data-sources §2.13）时，**选错收入概念会静默高估营收 ~45%**——这是本轮最危险的坑，tag 能返回数据 ≠ 口径正确。
+
+### 7.1 概念选择决定 GROSS vs NET 收入
+
+MA（CIK 0001141391）实测：`RevenueFromContractWithCustomerExcludingAssessedTax` 返回的是**扣回扣与激励（Rebates & Incentives）之前的 GROSS 收入**（FY2018 $21,831M），不是净收入（$15,027M）。tag 名本身不含 gross/net 信息，**各公司自行决定挂哪个口径**——按"返回数据的第一个收入 tag"直接采用，等于把全部返点计入营收。
+
+**闭环验证法（写入模型前必做）**：`gross − rebates = net` 必须闭合（MA 2018：21,831 − 6,804 = 15,027 ✓，与 `Revenues` concept 及新闻披露一致）。Rebates 行通常在 10-K 收入附注而非独立 XBRL tag，从附注文本抓取。
+
+同类高危商业模式：所有把"对渠道/发卡行/加盟商的返点"计为收入减项的公司（卡组织/OTA/加盟平台）。**建模、Take Rate、营销费用率全部必须用 NET 口径**——GROSS 口径会让净利率虚低 30%+、DuPont 拆解整体失真。
+
+### 7.2 EPS 概念行可能是残缺伪影，禁止单独采信
+
+MA 的 `EarningsPerShareDiluted` FY2018/FY2019 返回 0.87/2.07——与 `NI ÷ 稀释股本` 自算值差一个量级（疑似 B 类股/重述伪影，与 §6 TEM 案例同类：XBRL 是权威原始库但不是权威口径库）。**EPS 一律用 NI ÷ 稀释股本自算，XBRL EPS 行只作旁证**；自算值与 stockanalysis/新闻口径差 >10% 时停下找原因，不要带着异常 EPS 进建模。

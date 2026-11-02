@@ -208,6 +208,8 @@ u = f"https://stockanalysis.com/api/symbol/s/{ticker}/history?range=1Y&period=da
 
 **⚠️ `financials/?p=10Y` 只返回 5 个财年**（MU 实测 FY2022-2026，参数名义 10Y 实际 5 列）。跨 ≥1 完整周期的归一化/同构分析需要更早财年时：SEC XBRL 年度序列（§2.12①）兜底 + 公司 10-K 转录，数据包声明来源与口径。
 
+**⚠️ `/api/symbol/s/` 只有 `history` 端点可用（MA 2026-11 实测）**：`/api/symbol/s/{ticker}/overview`、`/financials` 等财务数据类 API 路径一律 404——财务四页仍然走 §1 的 HTML 直抓配方，不要把本节 history API 的成功经验泛化到财务端点。另注意 `?p=quarterly` 参数（§1）在 HTML 页正常工作，是季度拐点检测的快捷路径。
+
 ## 3. 兜底路径
 
 - 指引/事件/分部细节：web_search（如 `"Netflix" guidance revenue operating margin 2026`、`"NFLX" stock drop reason 日期`）
