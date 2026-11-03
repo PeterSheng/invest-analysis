@@ -29,24 +29,26 @@ with contextlib.redirect_stdout(io.StringIO()):
 
 WACC×tg 矩阵直接调 `_dcf_value(g1, wacc, tg, fcf0)` 得企业价值，`(EV + 净现金) / 股本` 得每股 IV。
 
-## 已验证调用骨架（东鹏 2026-10，可复制改参）
+## 已验证调用骨架（东鹏 2026-10，可复制改参；⚠️ 2026-11 起统一口径 WACC=10%/tg=3%，情景差异只体现在 g1/g2）
 
 ```python
 PRICE, SHARES = 109.45, 7.342          # 亿股
 FCF0, NETCASH  = 40.0, 156.5           # 正常化FCF / 净现金（亿）
 scenarios = {
-    "悲观": dict(g1=0.00, g2=0.00, tg=0.010, wacc=0.095),
-    "基准": dict(g1=0.10, g2=0.04, tg=0.025, wacc=0.090),
-    "乐观": dict(g1=0.16, g2=0.06, tg=0.030, wacc=0.085)}
+    "悲观": dict(g1=0.00, g2=0.00, wacc=0.10, tg=0.03),
+    "基准": dict(g1=0.10, g2=0.04, wacc=0.10, tg=0.03),
+    "乐观": dict(g1=0.16, g2=0.06, wacc=0.10, tg=0.03)}
 for name, s in scenarios.items():
     ev = _dcf_value(s["g1"], s["wacc"], s["tg"], FCF0)
-    iv_ps = (ev + NETCASH) / SHARES          # 三情景每股 IV
-g1r = implied_g1(PRICE, SHARES, FCF0, 0.09, tg=0.025)   # dict，取 ["g1"]
-anchor = zero_growth_anchor(FCF0, 0.09, NETCASH, SHARES,
-                            wacc_range=(0.085, 0.10))     # dict，取 ["per_share"]
-rows, verdict = price_vs_scenarios(PRICE, {"悲观":81.6, "基准":172.8,
-                                           "乐观":300.5, "零增长锚":81.9})
+    iv_ps = (ev + NETCASH) / SHARES          # 三情景每股 IV：85.7 / 156.0 / 231.5
+g1r = implied_g1(PRICE, SHARES, FCF0, 0.10, tg=0.03)    # dict，取 ["g1"]
+anchor = zero_growth_anchor(FCF0, 0.10, NETCASH, SHARES,
+                            wacc_range=(0.09, 0.10, 0.11))  # dict，取 ["per_share"]
+rows, verdict = price_vs_scenarios(PRICE, {"悲观":85.7, "基准":156.0,
+                                           "乐观":231.5, "零增长锚":75.8})
 ```
+
+> 东鹏 2026-10 轮曾按情景配 WACC 8.5-9.5% × tg 1.0-3.0%（IV 81.6/172.8/300.5、零增长锚 81.9）——该浮动做法已被「DCF 统一参数」（SKILL.md 第二步）取代，上表为统一口径下的重算值。
 
 注意脚本原生 `_dcf_value` 的显性期为 10 年单段 g1（无 g2 分段）——g2 只在上面的自算骨架里体现（5年g1+5年g2 结构用两次 _dcf_value 拼或自行折现）。
 

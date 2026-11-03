@@ -59,8 +59,8 @@ AFFO ≈ FFO − Total CapEx (when maintenance ≈ total for stable REITs)
 
 ### AFFO-Based DCF (Preferred)
 ```python
-wacc = 0.08  # lower for REITs
-terminal_growth = 0.02  # or 0% for declining industries
+wacc = 0.10             # 统一折现率 10%（2026-11 起全框架统一；REIT 框架早期版本曾用 0.08）
+terminal_growth = 0.03  # 统一永续增长率 3%（衰退行业可用 0%，须在报告中显式声明口径）
 
 for year in projection_years:
     affo_ps = current_affo * (1 + growth_rate) ** year
