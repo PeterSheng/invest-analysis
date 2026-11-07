@@ -30,6 +30,7 @@ https://push2.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f43,f44,f45,f6
 https://emweb.securities.eastmoney.com/PC_HSF10/NewFinanceAnalysis/ZcfzbAjaxNew?companyType=4&reportDateType=0&reportType=1&dates=2026-06-30,2025-12-31&code=SZ300750
 ```
 - 资产负债表 `ZcfzbAjaxNew`、现金流量表 `XjllbAjaxNew`、利润表 `LrbAjaxNew`（**三表全部实测可用，companyType=4 已在宁德/潍柴两例验证**；`dates` 参数支持 CSV 一次拉多年：`dates=2026-06-30,2025-12-31,2024-12-31,2023-12-31,2022-12-31` 一次拿五年序列，全程 <2 秒）
+- ⚠️ **`code` 参数必须带市场前缀**：新版接口对纯数字代码返回 `{"status":-1,"message":"股票代码不合法"}`（新产业 300832 实测 2026-11：`code=300832` 全表 0 行 → 改 `code=SZ300832` 立即正常；沪市同理用 `SH600519`）。排查顺序：先看返回体是不是 status=-1，再怀疑公司类型参数。
 - 利润表关键字段：`TOTAL_OPERATE_INCOME / PARENT_NETPROFIT / DEDUCT_PARENT_NETPROFIT / FINANCE_EXPENSE`（FINANCE_EXPENSE 是汇兑损益诊断入口，见 SKILL.md 恒立"增收不增利"陷阱）
 - 返回 JSON `data[]`，字段原始"元"：资产负债表 `MONETARYFUNDS/TRADE_FINASSET_NOTFVTPL/INVENTORY/ACCOUNTS_RECE/CONTRACT_LIAB/SHORT_LOAN/LONG_LOAN/BOND_PAYABLE/LEASE_LIAB/TOTAL_ASSETS/TOTAL_PARENT_EQUITY`；现金流 `NETCASH_OPERATE/CONSTRUCT_LONG_ASSET/ASSIGN_DIVIDEND_PORFIT`
 - **有息负债** = SHORT_LOAN + LONG_LOAN + BOND_PAYABLE + **NONCURRENT_LIAB_1YEAR（一年内到期的非流动负债，易漏！）** + LEASE_LIAB（潍柴 2026H1：775.43 亿货币资金 − 325.2 亿有息 = 净现金 450 亿；漏 NONCURRENT_LIAB_1YEAR 会虚增净现金数十亿）；**净现金** = 货币资金+交易性金融资产−有息负债（宁德 4,403−1,271≈3,132亿，占市值 22%）
