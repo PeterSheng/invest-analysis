@@ -12,7 +12,9 @@
 | **Unprofitable but approaching breakeven** | Revenue multiples (EV/Rev vs peers) | DCF with SBC adjustment, acquisition comp | Simple PE |
 | **Hyper-growth (>50% YoY)** | DCF with aggressive growth deceleration | Peer PE multiples (global peers), PEG | Current PE as primary |
 | **Cyclical / commodity** | Normalized PE (10yr avg earnings) | Mid-cycle DCF, P/B | TTM PE |
-| **Asset-heavy / insurance** | P/B + BVPS growth | — | DCF |
+| **Insurance underwriter (P&C / life)** | P/B + BVPS growth（公允 P/B = ROE/CoE） | Normalized PE, mkt cap/float | DCF |
+| **Insurance broker / fee-based roll-up (BRO, AJG, MMC, AON, WTW)** | **EV/EBITDA + adjusted P/E**；organic growth sets the multiple (≈1% → 13x, 2-3% → 15x, 4-5%+ → 17.5x) | FCF yield, reverse IRR | **P/B and P/TBV**（tangible equity usually negative: goodwill+intangibles >60% of assets）; plain DCF |
+| **Bank** | ROTE → P/B（见 financial-institutions-modeling） | Normalized PE, dividend+buyback yield | DCF / FCF |
 | **High SBC / dilution** | Always compute **economic FCF = FCF - SBC** | Revenue multiples as sanity check | Ignoring SBC |
 
 ## Key Rules

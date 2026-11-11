@@ -30,8 +30,8 @@ https://push2.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f43,f44,f45,f6
 https://emweb.securities.eastmoney.com/PC_HSF10/NewFinanceAnalysis/ZcfzbAjaxNew?companyType=4&reportDateType=0&reportType=1&dates=2026-06-30,2025-12-31&code=SZ300750
 ```
 - 资产负债表 `ZcfzbAjaxNew`、现金流量表 `XjllbAjaxNew`、利润表 `LrbAjaxNew`（**三表全部实测可用，companyType=4 已在宁德/潍柴两例验证**；`dates` 参数支持 CSV 一次拉多年：`dates=2026-06-30,2025-12-31,2024-12-31,2023-12-31,2022-12-31` 一次拿五年序列，全程 <2 秒）
-- ⚠️ **`code` 参数必须带市场前缀**：新版接口对纯数字代码返回 `{"status":-1,"message":"股票代码不合法"}`（新产业 300832 实测 2026-11：`code=300832` 全表 0 行 → 改 `code=SZ300832` 立即正常；沪市同理用 `SH600519`）。排查顺序：先看返回体是不是 status=-1，再怀疑公司类型参数。
 - 利润表关键字段：`TOTAL_OPERATE_INCOME / PARENT_NETPROFIT / DEDUCT_PARENT_NETPROFIT / FINANCE_EXPENSE`（FINANCE_EXPENSE 是汇兑损益诊断入口，见 SKILL.md 恒立"增收不增利"陷阱）
+- ⚠️ **`code` 参数必须带市场前缀**：纯数字 `code=300832` 返回 `{"status":-1,"message":"股票代码不合法"}`，改 `code=SZ300832` / `SH600519` 立即可用（新产业 2026-11 实战，连续多轮误判为接口失效）。排查顺序固定：①先看返回体 `status` 字段；②再疑 `companyType`/`reportType`；③代码本身最后查。
 - 返回 JSON `data[]`，字段原始"元"：资产负债表 `MONETARYFUNDS/TRADE_FINASSET_NOTFVTPL/INVENTORY/ACCOUNTS_RECE/CONTRACT_LIAB/SHORT_LOAN/LONG_LOAN/BOND_PAYABLE/LEASE_LIAB/TOTAL_ASSETS/TOTAL_PARENT_EQUITY`；现金流 `NETCASH_OPERATE/CONSTRUCT_LONG_ASSET/ASSIGN_DIVIDEND_PORFIT`
 - **有息负债** = SHORT_LOAN + LONG_LOAN + BOND_PAYABLE + **NONCURRENT_LIAB_1YEAR（一年内到期的非流动负债，易漏！）** + LEASE_LIAB（潍柴 2026H1：775.43 亿货币资金 − 325.2 亿有息 = 净现金 450 亿；漏 NONCURRENT_LIAB_1YEAR 会虚增净现金数十亿）；**净现金** = 货币资金+交易性金融资产−有息负债（宁德 4,403−1,271≈3,132亿，占市值 22%）
 
@@ -80,3 +80,20 @@ https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh300750,day,{start},{e
 - **A+H 拆分口径**：总股本 = A 股股本 + H 股股本（潍柴 86.40 = A 66.97 + H 19.43 亿股），**市值须混合口径** = A股股数×A股价 + H股股数×H股价×汇率（潍柴 2,319 亿）；全按 A 股价会高估 ~2-3%，必须在报告注明口径
 - **AH 比价 ≈ 1 的信息含量**：潍柴 0.989 平价（对比宁德 H 溢价 +54%）——平价意味着 A 股定价已充分悲观、两地投资者对基本面分歧极小，H 股不再是"折价备份"
 - A/H 溢价的两个方向都要写进风险/机会清单（芒格之问："凭什么确定犯错的是对面那个人"）
+
+## 5. 单季利润质量拆解（QoE）— 费用撑利润的识别（2026-11 新产业 300832 实战）
+
+A 股季报只披露**累计数**，单季必须自算：`Q_n = 累计_n − 累计_{n-1}`（Q3 = 9M − H1，Q2 = H1 − Q1）。
+
+> ⚠️ **累计相减的两个陷阱（2026-11 艾德生物 300685 实战）**：①东财 `LrbAjaxNew` 的 `dates` 一次只回 **5 个报告期**，上期累计行（如 `2024-03-31`）可能不在返回里，脚本会**静默回落成「去年同期累计」**，算出的同比看着合理但完全错（2025Q1 YoY 被算成 +16.9%）；②单季拆解前必须先看**上年同期 Q4 是否低基数**（艾德 2025 归母 +41.7% 有一半是 2024Q4 仅 0.276 亿、销售费用率 41.1% 的坑填回）。
+> **优先路径**：直接用同花顺单季表 `ak.stock_financial_benefit_ths(symbol="300685", indicator="按单季度")` 一次取 12+ 季度（营收/成本/销售/管理/研发/财务费用/归母/扣非），单位混用（营收「亿」、费用「万」）须换算；并用 **12 季度求和 = 东财年报数**做交叉校验。完整配方（含公告全表/投资者关系记录表/PE 口径）见 `references/a-share-quarterly-and-event-data-recipe.md`。
+
+**三步法：**
+1. **增速剪刀差**：单季营收增速 vs 单季归母增速（新产业 Q3'26：营收 +3.0% vs 归母 +20.6%，差 17.6pct 必须逐项解释，不允许一句"盈利能力提升"带过）。
+2. **四科目增量归因**：`Δ净利 ≈ Δ毛利 − Δ销售 − Δ研发 − Δ管理 − Δ财务 − Δ税`，逐项列「绝对额变动 / 对净利增速贡献 pct」，正负号必须闭合（残差 >10pct 说明有一次性项未识别）。
+   - Δ毛利 = 本期营收×本期毛利率 − 上期营收×上期毛利率（先拆量、再拆率，毛利率变动单独标注 pct）。
+   - 财务费用单列汇兑口径（人民币升值期出口占比高的公司必查，见 SKILL.md 恒立陷阱）。
+3. **定性判定**：净利增量 **>60% 来自费用节流**（尤其研发/销售同比**负增长**）= 利润质量黄旗，不是经营改善。新产业实测 Q3'26 销售费用 −11.5%、研发费用 −30.0%，约七成增量由节流贡献 → 直接写入**证伪线**：下期研发绝对额继续下滑 = 长期竞争力受损；营收增速同步掉档 = 「费用撑利润」确诊。
+4. **落地要求**：QoE 结论进 `03-风险分析` 与 `05-综合裁决` 的跟踪清单第一行，且不得只在估值章节出现——它改变的是评级理由（利润质量问题），不是估值倍数。
+
+⚠️ 与「盈喜/盈警分解」（SKILL.md：`Q2 = H1盈喜 − Q1预告`）**不是同一件事**：盈喜分解防的是累计口径掩盖单季崩塌；本节防的是单季高增长由节流而非业务驱动。两者都要做，顺序固定——先反推单季，再做科目归因。

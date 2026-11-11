@@ -116,6 +116,8 @@ for rpt in ["RPT_HKF10_FN_BALANCE","RPT_HKF10_FN_INCOME"]:
 
 **⑦ 中报公告可能没有现金流量表**：滨江服务 2026 中期业绩公告只有资产负债表＋损益表 → 年度 OCF 用 akshare `PER_NETCASH_OPERATE`（每股OCF×总股本）反推，中报 OCF 缺失时明示"年度口径"。
 
+**⑧ 悲观情景必须按"竞争优势侵蚀"做实，不能只降增速（2026-11 现代牙科 3600.HK 实战）**：初版悲观情景仅把 FCF 增速 10%→5% 仍得出 +40% 上行——与"悲观"语义自相矛盾。正确姿势：先从历史找该公司的**最差状态锚**（现代牙科 2018 年 ROE 4.2%/净利率 ~4.6%），让悲观情景体现净利率回归历史均值 → FCF 基数下修 + 零增长（如 6.6→4.0 亿），三档才能拉开真实分歧（悲观 -31% vs 中性 +76%）。若三情景差距都很小，说明假设没有真正分歧，等于没做情景分析。
+
 ## 2.4 港股中报/年报 PDF 结构化提取路线（2026-10 滨江服务三轮实战沉淀）
 
 pdftotext 拿到全文后（4,000+ 行）不要顺序通读，按**五遍提取法**按行号窗口定位打印，一遍一个主题：
@@ -168,6 +170,45 @@ d = dict(zip(sub["STD_ITEM_NAME"], (sub["AMOUNT"] / 1e8).round(3)))  # 单位是
 - **负债异动三分穿透法**：总负债跳升时按 ①有息（贷款+租赁+票据）②经营性占款（应付+其他应付+合同负债）③**或有对价/递延**（其他非流动负债从 0 出现）三分归因再下结论。**分步收购/剩余股权行权义务的报表三件套指纹**：其他非流动负债新增（归创 +2.677 亿 Optimed 剩余 51% 行权义务公允价值）+ 无形资产同步暴增（+1.89 亿）+ 递延税项负债新增（+0.11 亿）——三笔同时出现基本锁定 M&A 或有结构，高置信推断仍须公告验证
 - **「已收利息」在经营活动段内**：TTM 经营性 FCF 与净现金加回的口径衔接必须剔除已收利息（规则见 SKILL.md 常见陷阱剔现金行）
 
+## 2.6.2 ★ 香港收租型地产数据源（太古地产 1972.HK 2026-11 实战）
+
+港资地产/收租公司（太古地产、恒隆、希慎、嘉里建设、九仓置业）不走东财 F10 效率最高，而是**公司 IR + irasia 托管 PDF + 季度运营公告**：
+
+- **报告 PDF 直链模式（irasia 托管，大量港资公司同构）**：
+  `https://doc.irasia.com/listco/hk/{slug}/interim/{year}/int.pdf`、`.../annual/{year}/res.pdf`
+  （太古 slug=`swireproperties`）→ `pdftotext -layout` 后按「主要發展項目 / 投資物業 / 財務回顧 / 分部資料」定位。**繁中字符间会插空格**，正则写 `r"投\s*資\s*物\s*業"`。
+- **季度/半年度运营数据公告 = 最快的一手运营数据**：太古在业绩前发布 operating statement（`a261105.pdf`，2026-11-05），出租率、续租租金变动（rental reversion）、香港/内地零售额增速全在里面——**早于半年报数周**，跟踪轮先抓它。
+- **股息全序列走公司 IR「股息历史」页**：`ir.swireproperties.com/en/shareholders/dividend-history.php`（⚠️ **连字符**，写成 `dividend_history.php` 404）。含特别股息/以股代息/除净日，比 `ak.stock_hk_dividend_payout_em` 全（后者对部分蓝筹滞后多年，见 §2.3②）。
+- **⚠️ akshare 货币陷阱的第四种形态：HKD 本位公司也被折算成 RMB**。此前三次命中都是「RMB/USD 报告货币的港股」，但太古以 **HKD 编报**，`stock_financial_hk_analysis_indicator_em` 返回的仍是 RMB：营收 14,489 vs 官方 16,041 百万 HKD（比值 0.903 = 反算汇率）、BPS 44.28 vs 47.35。**判别法：拿一个官方披露的绝对值做比值，落在 0.88-0.94 即是被折算**；折算后所有估值锚（P/B、股息率、EV）会系统性偏低约 10%。能用官方 PDF 就优先官方 PDF。
+- 估值口径注意：投资物业按公允价值计量 → **P/B ≈ P/NAV**，行情商 PB 与自算 PB 差异主要来自分母是否含少数股东；收租股 PB 区间（0.4-0.8x）本身是市场定价，不作「低估」证据。完整分析框架见 `investment-property-dividend-sustainability.md`。
+
+## 2.7 ★ 雪球港股财务 API 链（东财多路失败时的兜底，2026-11 现代牙科 3600.HK 实战）
+
+2026-11 实测当日，东财 HK 财务接口集体失效：`stock_financial_hk_analysis_indicator_em` 返回 NoneType、`RPT_HKF10_FN_MAININDICATOR` datacenter API 报 HTTP 400、`stock_financial_hk_report_em(stock=代码, symbol=报表类型)` 对 03600 返回长表但 STD_ITEM_NAME 全 NaN（科目名丢失无法映射）。⚠️ 这些失效是接口状态问题而非永久结论——换代码前先重试一次；仍失败直接切雪球链，不要在东财上浪费轮次：
+
+```python
+import urllib.request, http.cookiejar, json
+cj = http.cookiejar.CookieJar()
+op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+op.addheaders = [("User-Agent","Mozilla/5.0 Chrome/120"), ("Accept","application/json")]
+op.open("https://xueqiu.com/", timeout=15).read()   # ① 先访问首页拿 cookie，否则后续 400
+base = "https://stock.xueqiu.com/v5/stock/finance/hk/{path}.json?symbol=03600&type={t}&count={n}"
+# ② indicator.json type=all → beps/bps/gpm/npm/roe 逐报告期序列（年报=全年值，半年报=半年累计）
+# ③ income.json  type=Y → tto=营业额(收入) / ploashh=归母净利 / opeploinclfincost=经营利润；amteqyhdcom 同归母
+# ④ balance.json type=Y → 仅 ta(总资产)/tlia(总负债) 汇总；ta_tlia 实测为 0，净资产=ta−tlia 自算
+```
+
+关键坑位：
+- **字段名是缩写**（tto/ploashh/…），与可见列名完全对不上——先打印 `list(data.keys())` 再按上表对照，别按 A 股字段名猜
+- **值多为 `[值, 同比]` 二元列表**：取数时 `v[0]`，取同比 `v[1]`（income.json 实测）；indicator.json 则是裸值
+- **report_date 是 unix 时间戳**（income 秒级、balance 可能毫秒级）——`d/1000 if d>1e11 else d` 统一后再 strftime，直接 utcfromtimestamp(秒) 对毫秒会报 year 越界
+- **交叉自洽性极好**：2026H1 income.json（20.32 亿/+10.8%、3.74 亿/+31.2%）与官方中报公告逐位吻合；ROE 19.9% 可由 净利÷平均净资产 复算验证
+- **分红数据雪球链拿不到**：`capital/dividend.json` 404；akshare `stock_hk_dividend_payout_em`（东财）返回空、`stock_hk_fhpx_detail_ths` "No tables found"。兜底：用已验证的中期息（官方公告）× 派息率推算全年 DPS，**报告中明确标注"推算口径，未经年报原文核对"**，禁写精确值假象
+
+**★ EPS 自洽性校验（接手旧会话/旧数据包时的第一动作）**：`EPS(指标接口) × 股本(市值÷现价) ≈ 归母净利(利润表)` 必须成立；再加两条：`当期 ÷ (1+YoY) ≈ 前期` 反推、`ROE = 归母 ÷ 平均净资产` 复算。2026-11 现代牙科实战：继承自上会话的东财数据（收入 33.75 亿/净利 5.39 亿）因 EPS×股本=5.95 亿 对不上而证伪，雪球口径 37.37 亿/5.97 亿与官方中报 EPS 序列完全自洽——**旧会话摘要里的绝对值数字不可信，必须过自洽检验才能进报告**。
+
+**HKEX 年报 PDF 搜索陷阱（2026-11 实战）**：web_search 命中的 hkexnews 公告 PDF 直链可能是**错误公司**的公告（搜现代牙科 2025 年报，命中美丽华酒店 0071 的 2026031901637_c.pdf）——下载后第一步核对 PDF 标题与公司名，不符立即弃用重搜。本机 venv 无任何 PDF 库（fitz/pdfplumber/pypdf 全缺），`sys.executable -m pip install pypdf` 可装通（~35s），装不了时走 pdftotext。
+
 ## 3. 兜底：web_search 新闻摘要
 
 只用于补齐：现金头寸（搜"手持现金""银行结余"，如"2024年报手中现金共25.1亿元人民币"）、细分收入占比、集采中标、管理层表态、并购金额。
@@ -181,6 +222,7 @@ d = dict(zip(sub["STD_ITEM_NAME"], (sub["AMOUNT"] / 1e8).round(3)))  # 单位是
 | 股价 | 腾讯API vs akshare估值历史末行 vs 52周区间合理性 |
 | 市值 | 股价×总股本 vs 腾讯字段43 vs akshare Baidu总市值 |
 | PE | 股价/EPS vs 腾讯字段38 vs Eastmoney市盈率——三处一致才采信 |
+| 归母净利 | **EPS 自洽性铁律（2026-11 现代牙科新增）**：EPS×股本 ≈ 归母净利 + YoY 反推前值 + ROE=归母÷平均净资产 三条复算——旧会话/旧数据包继承的绝对值必须过此检验（东财错值 33.75/5.39 亿即由此证伪，实际 37.37/5.97 亿，详见 §2.7） |
 | 汇兑 | 1 HKD ≈ 0.9175 RMB（2026-08），报告双币标注 |
 | 双重上市 | **同一公司港美股同价验证**（百胜中国 9987.HK / YUMC 实战）：港股价 ÷ (美股价 × ADR比率) ≈ USD/HKD 汇率（~7.8）。YUMC ADR 比率 1:1，376.40 ÷ 48.19 = 7.81 ✓。偏差 >2% 说明一侧价格过期。⚠️ ADR 比率因公司而异（BABA 1:8、JD 1:2），先查清比率再验证 |
 
@@ -205,6 +247,35 @@ d = dict(zip(sub["STD_ITEM_NAME"], (sub["AMOUNT"] / 1e8).round(3)))  # 单位是
 - **腾讯 00700 字段实测**：[3]价 / [39] PE(TTM) 可对拍 ✓ / [44] 总市值（亿HKD）/ [48]/[49] 52周高/低 / [69] 总股本；[47]/[59]/[64]/[71] 失真勿用。验证公式照旧 `价×[69]股本 ≈ [44]`；汇率 0.9175（2026-10）。
 - **★ 业绩电话会实录直抓（单次信息密度最高的数据源）**：`https://tickertrends.io/transcripts/{TICKER}/Q{N}-earnings-transcript-2026`（如 0700.HK → `/transcripts/0700.HK/Q2-earnings-transcript-2026`），urllib+UA 直抓 50KB+ 全文——capex/FCF 精确口径（经营 vs 付款两口径）、分部毛利率、管理层问答、资本配置原话全在一份文件里，胜过十轮 web_search。镜像站/转载站不可靠（aafx.io brotli 乱码、wyndhamgrandqingdao 镜像截断 4KB），直接抓实录原文。
 - **现成年报解读稿**：momoview.com 搜 ticker 有 FY 全年分析（腾讯 FY2025 一篇含 VAS/广告/云分部全表、capex 同业对比（Meta 27%/Alphabet 13%/腾讯 10.5%）、回购股息史），比一般媒体稿结构化；但其中管理层定性表述（"腾讯云首次规模化盈利"）必须标"未量化披露"，数字仍以公告/实录为准。
+
+## 6.6 银行股 / 含 AT1 的 G-SIB（汇丰控股 00005 实战，2026-11）
+
+港股银行（汇丰、渣打、恒生、中银香港）与一般港股两条根本差异：**PB 分母夹着 AT1**、**官方 release 才是口径唯一来源**。
+
+**① PB 必须自算，腾讯/stockanalysis 的 PB 一律不用**
+- 行情商 PB = 现价 ÷ **总权益（含 AT1 + 少数股东）**；银行主口径应为**归属普通股股东权益**。汇丰实测：自算 1.73x vs 腾讯/stockanalysis 1.51x —— **低估 13%，足以把"合理价"算低 0.2x P/B**。
+- 自算式：`PB = 现价 × 总股本 ÷ 普通股股东权益`；另算 `P/TBV = 现价 ÷ TBVPS`（剔商誉+无形，汇丰 1.86x）。两口径都进 `00-数据包.md` 并写"三口径警示"。
+- 校验铁律：同一银行 `PB(普通股) < PB(TBV)` 恒成立；算反了说明分母混入 AT1 或商誉为负。
+
+**② 财务数据：官方 earnings release PDF 优先，akshare 只作辅助**
+`stock_financial_hk_analysis_indicator_em(symbol="00005")` 对国际银行字段稀疏、口径混杂（调整后 vs 法定、期间 vs 年化），拿不到 CET1/分部 PBT/信贷成本 bps。正确路线：
+
+```bash
+# IR 站 results 目录定位当季 PDF（hsbc.com/investors/... ；国际银行多为同构路径）
+pdftotext -layout 3q26.pdf 3q26.txt        # -layout 必须加，否则表格列错位
+# 按标签抓：PBT / ROTE / CET1 / 净利息收入 / 预期信用损失(bps) / 成本收入比 / 分部 PBT
+```
+- **法定口径与"调整后"口径都要抓**，报告并列表述并注明哪套进了估值；一次性项（并购相关、出售收益、重组）在 ROTE 上做"剔除后再看"双行。
+- 分部利润是段永平视角的核心证据，别只用集团合计。
+- 官方稿同时给"目标 ROTE + 目标 CET1"，可与自己的 g 假设对拍。
+
+**③ 股息率用除净日口径**
+汇丰除净日与派息日可差 1-2 个月，除净日才是持有人落袋时点；用派息日会把股息率算偏 0.2-0.4pct，足以翻掉 HOLD/BUY 边界。DDM 折现时点同理。
+
+**④ ADR 交叉校验（汇丰 1 ADR = 5 普通股）**
+`HK 价 × USD/HKD` vs `ADR 价 ÷ 5`，两条路径一致才认价格；市值必须按各地股数×当地价×汇率加总，勿用单边价×总股本。
+
+估值方法与 AT1 口径的完整推导见 `financial-institutions-modeling.md` §10（含 `scripts/bank_valuation_pb.py` 一键出表）。
 
 ## 失败端点备忘（不要浪费轮次）
 

@@ -210,6 +210,28 @@ u = f"https://stockanalysis.com/api/symbol/s/{ticker}/history?range=1Y&period=da
 
 **⚠️ `/api/symbol/s/` 只有 `history` 端点可用（MA 2026-11 实测）**：`/api/symbol/s/{ticker}/overview`、`/financials` 等财务数据类 API 路径一律 404——财务四页仍然走 §1 的 HTML 直抓配方，不要把本节 history API 的成功经验泛化到财务端点。另注意 `?p=quarterly` 参数（§1）在 HTML 页正常工作，是季度拐点检测的快捷路径。
 
+## 2.14 统计页/预测页 + 同业逐票取数纪律（GWW 固安捷 2026-11 实战）
+
+**① §1 四页之外的两个补充页**：
+
+| 页面 | URL | 用途 |
+|------|-----|------|
+| 统计页 | `https://stockanalysis.com/stocks/{ticker}/statistics/` | 一次拿全估值与质量快照：市值、EV、PE/FwdPE/PEG/PB/PS/P-FCF、EV/EBITDA、ROE/ROIC、毛利率/营业利润率、净债、股息率、股本、Beta、52 周区间。**同业对比表每一行都以此为取数源** |
+| 预测页 | `https://stockanalysis.com/stocks/{ticker}/forecast/` | 分析师一致预期：当年/次年收入与 EPS 共识、目标价区间、评级分布、3 年营收 CAGR。报告里"共识增速 +x%""目标价 $xxx"必须引自此页并注明取数日 |
+
+**② 同业对比表禁止"估算配平"口径（GWW 轮返工两次的根因）**：
+- 首版对比表曾按"营收量级"估算填市值 → 整表倍数错位：**MSM 估算 $2.6B vs 实际 $6.33B（差 2.4 倍）**，随之 PE/EV-EBITDA/ROIC 全部失真，只能返工重写。
+- 硬规则：同业表每行的市值、EV、PE、FwdPE、EV/EBITDA、ROIC、ROE、毛利率、营业利润率**逐票从 statistics 页取一次**（7 个 ticker 一次 urllib 循环即可），**禁止任何"约/估/按比例推算"进入单元格**；确实拿不到的留空并写"未取到"，不许填估算值。
+- 表下固定一行：数据源 + 取数日（如"stockanalysis statistics 页，2026-11-06 收盘"）。跨市场对比（美股 vs 港股/A 股）时逐票核对货币与财年口径。
+
+**③ SEC Archive 直链 404 时的正确姿势**（不要再猜文件名重试）：
+```
+https://www.sec.gov/Archives/edgar/data/{CIK}/{accession去横线}/index.json   ← 先打这个
+```
+- 目录内真实文件名是公司自命名的（如 `gww-20261104.htm`、`exhibit991.htm`），**凭规律拼 URL 几乎必 404**。`index.json` / `index.html` 返回的是目录清单，从中取 `name` 字段再用真实路径抓文件。
+- `index.json` 本身 404 = 该 accession 目录不存在或不可访问 → 直接转 stockanalysis + web_search，别在猜文件名上耗轮次。
+- **连通性对照法**：同会话换一个已知可用的 EDGAR 文档（如 AAPL 10-K）测一次 200/404，就能区分"SEC 整体不通"和"单个 URL 拼错"——本轮 GWW 8-K 直链 404 而 AAPL 返回 200，据此判定是文件名问题而非网络问题。
+
 ## 3. 兜底路径
 
 - 指引/事件/分部细节：web_search（如 `"Netflix" guidance revenue operating margin 2026`、`"NFLX" stock drop reason 日期`）

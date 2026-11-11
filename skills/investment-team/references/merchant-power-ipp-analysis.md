@@ -45,7 +45,7 @@
 
 - **Base FCF 用"adjusted FCF before growth"（FCFbG）指引**，不是 GAAP FCF（含增长 capex：Vistra GAAP FCF TTM $2.26B vs 2026E FCFbG $4.33B）
 - **⚠ 债务口径：先查公告收购的现金流出是否已入表再扣减**。Vistra 实战教训：首版模型把 Cogentrix $4B（2026-01 宣布、H1'26 已完成、已反映在净债务 $20.1B）重复扣除，股权 IV 低估 ~$13/股。正确口径 = 当前报表净债务 + 未来现金流出（Vision 买断 $3.25B 分 5 期付款，取 PV ~$2.9B）
-- **WACC 敏感性极大**（Beta 1.43 + merchant 暴露 → WACC 8-9%）：中性情景下 9%→IV $162 vs 7%→$268（±30%），必须输出 WACC×永续g 矩阵
+- **WACC 敏感性极大**（Beta 1.43 + merchant 暴露；统一口径 WACC=10%，历史轮曾用 8-9%）：Vistra 历史实算 9%→IV $162 vs 7%→$268（±30%），矩阵必须以 10% 为中枢上下各摆一档，必须输出 WACC×永续g 矩阵
 - **现价反推隐含永续 FCF 增速**：`g_implied = WACC − FCF0/EV`。Vistra 现价隐含仅 2.2%（WACC 8.5%）vs 指引增速 6%+ → 市场在定价"AI 叙事证伪 + 电价均值回归"，未为增长付钱
 - 三情景 FCF0 围绕指引中点做 ±20% 摆动（悲观取指引低端再打折）
 

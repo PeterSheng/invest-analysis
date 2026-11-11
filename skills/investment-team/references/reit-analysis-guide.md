@@ -13,7 +13,7 @@ REITs（房地产投资信托）的财务报表结构与普通公司有本质区
 | D&A treatment | Non-cash expense | **Add back to compute FFO** (REIT depreciation is massive) |
 | Dividend payout | From earnings | **90%+ of taxable income required by law** |
 | Growth funding | Retained earnings | External (debt/equity issuance) |
-| DCF WACC | 10-12% | **8%** (more stable cash flows) |
+| DCF WACC | 10-12% | 统一口径 **10%**（早期版本曾用 8%，2026-11 统一参数轮修正） |
 
 ## FFO and AFFO Computation
 
