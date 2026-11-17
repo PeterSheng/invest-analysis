@@ -232,6 +232,23 @@ https://www.sec.gov/Archives/edgar/data/{CIK}/{accession去横线}/index.json   
 - `index.json` 本身 404 = 该 accession 目录不存在或不可访问 → 直接转 stockanalysis + web_search，别在猜文件名上耗轮次。
 - **连通性对照法**：同会话换一个已知可用的 EDGAR 文档（如 AAPL 10-K）测一次 200/404，就能区分"SEC 整体不通"和"单个 URL 拼错"——本轮 GWW 8-K 直链 404 而 AAPL 返回 200，据此判定是文件名问题而非网络问题。
 
+## 2.15 中概 ADR 一手源：6-K EX-99.1 财报新闻稿（FUTU 2026-11 重析实战）
+
+中概股（外国私人发行人）不发 8-K 而发 **6-K**，且公司 IR 站点在境内常不可达（`ir.futuholdings.com`、`futuhk.com` 本轮全部超时/network unreachable，finviz 403）。**6-K 是本轮唯一拿到一手数的路径**：
+
+```
+https://www.sec.gov/files/company_tickers.json          # 全市场 ticker→CIK（别硬猜 CIK：本轮曾误用 1748797=BRP）
+→ https://data.sec.gov/submissions/CIK{十位补零}.json    # recent[] 里筛 form=='6-K' 且 filingDate≈财报日
+→ https://www.sec.gov/Archives/edgar/data/{cik}/{acc去横线}/index.json
+→ 取 name 类似 ex991.htm / ex99-1.htm 的展品（封面 6-K 本身是空的，财报全在展品里）
+```
+- 一次拿全：营收拆分（佣金/利息/其他）、成本四项、营业利润、净利润、稀释 EPS、资产负债表全表、KPI（账户数/客户资产/保证金/成交额/获客成本）、指引、回购、管理层观点。**中概 ADR 的季度重析一律以此为主源，新闻站只用于归因与市场反应**。
+- **⚠️ 财报段没有 `<table>` 标签**：EX-99.1 的利润表/资产负债表是文本排版，`re.findall('<table.*?</table>')` 返回 **0 张表**（本轮第一次解析即空手而归）。正确做法：去 script/style → 去标签成行 → 逐行读。**列序必须从头行确认**，中概稿常见 6 列：`Q2'25 | Q2'26 | Q2'26 US$ | H1'25 | H1'26 | H1'26 US$`（两列 US$ 易被误当同比列，错位即整套建模作废）。
+- **⚠️ 聚合站营收 ≠ 官方营收（券商/银行尤甚）**：FUTU FY2025 stockanalysis 营收 **21,089** vs 6-K 一手 **22,846.9（HK$M，差 8.3%）**——聚合站把利息支出净额化，营收被系统性压低。凡毛利率/费用率/营业利润率的分母，一律用新闻稿一手营收；stockanalysis 只用于取价格、股本、ROE、PB、同业快照。
+- **统计页的两个日期字段**（`/stocks/{t}/statistics/`）：`Earnings Date`（下次财报日，FUTU=2026-11-19）+ `Ex-Dividend Date`。财报日在 2-3 周内的标的，结论必须写成"二元事件"并给出财报前后两套动作（本轮即因 11/19 仅剩 8 天而把仓位建议改为"先观察仓、别打满"）。
+- **股息构成别猜**：`/stocks/{t}/dividend/` 给逐次派息史。FUTU = 2024-12-06 $2.00 特别息 + 2026-04-16 $2.60 年度息 → TTM $2.60、派息率 25.9%。只写 TTM 合计而不查构成，容易把一次性特别息说成常规股息率。
+- 电话会：IR transcript 不可达时用 fool.com（`fool.com/earnings/call-transcripts/{YYYY}/{MM}/{DD}/{slug}/`），管理层对"内地存量客户/资金流出/留存率"的口径只在 Q&A 里（FUTU：Q2'26 累计资产流出占总客户资产 mid-single-digit%、香港留存 >98%、CAC HK$2,600）。
+
 ## 3. 兜底路径
 
 - 指引/事件/分部细节：web_search（如 `"Netflix" guidance revenue operating margin 2026`、`"NFLX" stock drop reason 日期`）
